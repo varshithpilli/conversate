@@ -57,7 +57,7 @@ function updateDropText() {
 // --- New action handlers ---
 const btnSummarize = document.getElementById("btnSummarize");
 const btnGetDoi = document.getElementById("btnGetDoi");
-const btnPlagiarism = document.getElementById("btnPlagiarism");
+// const btnPlagiarism = document.getElementById("btnPlagiarism");
 
 const resultCard = document.getElementById("resultCard");
 const resultHeader = document.getElementById("resultHeader");
@@ -69,7 +69,7 @@ const API_BASE = "http://13.220.174.139:8000";
 
 btnSummarize.addEventListener("click", performSummarize);
 btnGetDoi.addEventListener("click", performGetDoi);
-btnPlagiarism.addEventListener("click", performPlagiarism);
+// btnPlagiarism.addEventListener("click", performPlagiarism);
 
 // Disable action buttons and ensure only upload section is visible initially
 setActionButtonsEnabled(false);
@@ -218,52 +218,52 @@ function formatDoiResponseToMarkdown(text) {
 // }
 
 
-async function performPlagiarism() {
-  const file = fileInput.files && fileInput.files[0];
-  if (!file) return;
+// async function performPlagiarism() {
+//   const file = fileInput.files && fileInput.files[0];
+//   if (!file) return;
 
-  resetResult();
-  resultHeader.textContent = "Plagiarism Check";
-  resultCard.style.display = "block";
+//   resetResult();
+//   resultHeader.textContent = "Plagiarism Check";
+//   resultCard.style.display = "block";
 
-  const formData = new FormData();
-  formData.append("file", file);
+//   const formData = new FormData();
+//   formData.append("file", file);
 
-  try {
-    const res = await fetch(`${API_BASE}/plagiarism`, {
-      method: "POST",
-      body: formData,
-    });
+//   try {
+//     const res = await fetch(`${API_BASE}/plagiarism`, {
+//       method: "POST",
+//       body: formData,
+//     });
 
-    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+//     if (!res.ok) throw new Error(`Request failed (${res.status})`);
 
-    summarySection.style.display = "block";
-    summarySection.style.overflowY = "auto";
+//     summarySection.style.display = "block";
+//     summarySection.style.overflowY = "auto";
 
-    if (res.body && res.body.getReader) {
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-      let fullText = "";
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        if (value) {
-          const chunk = decoder.decode(value, { stream: true });
-          fullText += chunk;
-          renderOutput(fullText, true); // asMarkdown = true
-        }
-      }
-    } else {
-      const text = await res.text();
-      renderOutput(text, true);
-    }
-  } catch (err) {
-    summaryText.textContent = "Error: " + err.message;
-    summarySection.style.display = "block";
-    summarySection.style.overflowY = "hidden";
-  }
-}
+//     if (res.body && res.body.getReader) {
+//       const reader = res.body.getReader();
+//       const decoder = new TextDecoder();
+//       let done = false;
+//       let fullText = "";
+//       while (!done) {
+//         const { value, done: doneReading } = await reader.read();
+//         done = doneReading;
+//         if (value) {
+//           const chunk = decoder.decode(value, { stream: true });
+//           fullText += chunk;
+//           renderOutput(fullText, true); // asMarkdown = true
+//         }
+//       }
+//     } else {
+//       const text = await res.text();
+//       renderOutput(text, true);
+//     }
+//   } catch (err) {
+//     summaryText.textContent = "Error: " + err.message;
+//     summarySection.style.display = "block";
+//     summarySection.style.overflowY = "hidden";
+//   }
+// }
 
 function renderOutput(text, asMarkdown) {
   if (asMarkdown) {
@@ -315,5 +315,5 @@ async function uploadSelectedFile() {
 function setActionButtonsEnabled(enabled) {
   btnSummarize.disabled = !enabled;
   btnGetDoi.disabled = !enabled;
-  btnPlagiarism.disabled = !enabled;
+  // btnPlagiarism.disabled = !enabled;
 }

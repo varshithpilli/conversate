@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 import requests
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-import fitz  # PyMuPDF
+import fitz
 import camelot
 from PIL import Image
 import io
@@ -14,13 +14,12 @@ from fastapi import HTTPException
 import requests
 import re
 
-
 RESULT = []
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For testing only; restrict this to your frontend URL in prod
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,23 +72,16 @@ def extract_figures(pdf_path):
     doc.close()
     return figures_list
 
-# -------------------------
-# Upload endpoint with extraction
-# -------------------------
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
-    # Save file temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(await file.read())
         tmp_path = tmp.name
-        print(f"Saved upload temporarily at: {tmp_path}")
 
-    # Upload to S3
     s3_key = file.filename
     s3_client.upload_file(tmp_path, BUCKET_NAME, s3_key)
     print(f"Uploaded file {s3_key} to bucket {BUCKET_NAME}")
 
-    # Run extraction on the saved file
     text_json = extract_text(tmp_path)
     print("Text extracted")
     tables = extract_tables(tmp_path)
@@ -97,7 +89,6 @@ async def upload(file: UploadFile = File(...)):
     figures = extract_figures(tmp_path)
     print("Images extracted")
 
-    # Clean up temp file
     os.remove(tmp_path)
 
     result = {
@@ -106,20 +97,7 @@ async def upload(file: UploadFile = File(...)):
         "figures": figures,
     }
     RESULT.append(result)
-    # print(result)
-    return {"status": "ok", "message": "File uploaded and processed successfully", "result": result}
-
-# @app.post("/upload")
-# async def upload(file: UploadFile = File(...)):
-#     with tempfile.NamedTemporaryFile(delete=False) as tmp:
-#         tmp.write(await file.read())
-#         tmp_path = tmp.name
-#         print(tmp_path)
-#     s3_key = f"{file.filename}"
-#     s3_client.upload_file(tmp_path, BUCKET_NAME, s3_key)
-#     print(f"File {s3_key} uploaded to s3-bucket {BUCKET_NAME}")
-#     os.remove(tmp_path)
-#     return {"status": "ok", "message": "File uploaded successfully"}
+    return {"status": "ok", "result": result}
 
 @app.post("/summarize")
 def stream_deepseek():
@@ -157,78 +135,57 @@ def stream_deepseek():
                     yield text
 
         except ClientError as e:
-            yield f"\n❌ AWS Client Error: {e.response['Error']['Message']}"
+            yield f"\nAWS Client Error: {e.response['Error']['Message']}"
         except Exception as e:
-            yield f"\n❌ Unexpected error: {str(e)}"
+            yield f"\nUnexpected error: {str(e)}"
 
-    # Return a streaming response, with text/plain content type
     return StreamingResponse(event_stream(), media_type="text/plain")
 
-@app.get("/doi")
-def get_citation():
-    text = RESULT[-1]
-    match = re.search(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", text, re.I)
-    print(f"The match is : {match}")
-    if not match:
-        raise HTTPException(status_code=404, detail="DOI not found in paper")
+@app.post("/doi")
+def get_doi():
+    if not RESULT:
+        return {"error": "No document uploaded yet."}
 
-    doi = match.group(0)
+    doc_text = RESULT[-1]["text"]["full_text"]
 
-    # Step 3: Resolve DOI to citation link
-    doi_url = f"https://doi.org/{doi}"
-    response = requests.head(doi_url, allow_redirects=True)
+    prompt = f"""
+    Extract all valid DOI numbers from the following research paper text. 
+    - Only return the DOI as a full link in the format: https://doi.org/xxxxx
+    - Do not return any other text or explanation.
+    - If no DOI is found, return "No DOI detected".
 
-    if response.status_code == 200:
-        # return only the raw link (no JSON)
-        return response.url
-    else:
-        raise HTTPException(status_code=404, detail="Citation link not found")
+    Research Paper Text:
+    {doc_text}
+    """
 
-    
-# @app.post("/doi")
-# def get_doi():
-#     if not RESULT:
-#         return {"error": "No document uploaded yet."}
+    conversation = [
+        {
+            "role": "user",
+            "content": [{"text": prompt}]
+        }
+    ]
 
-#     doc_text = RESULT[-1]["text"]["full_text"]
+    try:
+        response = client.converse(
+            modelId=model_id,
+            messages=conversation,
+            inferenceConfig={
+                "maxTokens": 512,
+                "temperature": 0.0,
+                "topP": 0.9
+            },
+            additionalModelRequestFields={},
+            performanceConfig={"latency": "standard"}
+        )
 
-#     prompt = f"""
-#     Extract all valid DOI numbers from the following research paper text. 
-#     - Ensure DOIs are in correct format (e.g., 10.xxxx/xxxx).
-#     - If no DOI is found, return "No DOI detected".
+        doi_links = ""
+        for content_block in response["output"]["message"]["content"]:
+            if "text" in content_block:
+                doi_links += content_block["text"]
 
-#     Research Paper Text:
-#     {doc_text}
-#     """
+        return doi_links.strip()
 
-#     conversation = [
-#         {
-#             "role": "user",
-#             "content": [{"text": prompt}]
-#         }
-#     ]
-
-#     try:
-#         response = client.converse(
-#             modelId=model_id,
-#             messages=conversation,
-#             inferenceConfig={
-#                 "maxTokens": 1024,
-#                 "temperature": 0.0,
-#                 "topP": 0.9
-#             },
-#             additionalModelRequestFields={},
-#             performanceConfig={"latency": "standard"}
-#         )
-
-#         citations = ""
-#         for content_block in response["output"]["message"]["content"]:
-#             if "text" in content_block:
-#                 citations += content_block["text"]
-
-#         return citations.strip()
-
-#     except ClientError as e:
-#         return {"error": f"AWS Client Error: {e.response['Error']['Message']}"}
-#     except Exception as e:
-#         return {"error": f"Unexpected error: {str(e)}"}
+    except ClientError as e:
+        return {"error": f"AWS Client Error: {e.response['Error']['Message']}"}
+    except Exception as e:
+        return {"error": f"Unexpected error: {str(e)}"}
