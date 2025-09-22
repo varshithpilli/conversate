@@ -46,7 +46,6 @@ fileInput.addEventListener("change", updateDropText);
 function updateDropText() {
   if (fileInput.files && fileInput.files.length > 0) {
     dropAreaText.textContent = fileInput.files[0].name;
-    // Trigger auto-upload when a file is selected
     uploadSelectedFile();
   } else {
     dropAreaText.innerHTML =
@@ -54,24 +53,18 @@ function updateDropText() {
   }
 }
 
-// --- New action handlers ---
 const btnSummarize = document.getElementById("btnSummarize");
 const btnGetDoi = document.getElementById("btnGetDoi");
-// const btnPlagiarism = document.getElementById("btnPlagiarism");
 
 const resultCard = document.getElementById("resultCard");
 const resultHeader = document.getElementById("resultHeader");
 const summarySection = document.getElementById("summarySection");
 const summaryText = document.getElementById("summaryText");
 
-const API_BASE = "http://13.220.174.139:8000";
-// const API_BASE = "http://localhost:8000";
+const API_BASE = "http://13.220.174.139:8001";
 
 btnSummarize.addEventListener("click", performSummarize);
 btnGetDoi.addEventListener("click", performGetDoi);
-// btnPlagiarism.addEventListener("click", performPlagiarism);
-
-// Disable action buttons and ensure only upload section is visible initially
 setActionButtonsEnabled(false);
 if (actionsSection) actionsSection.style.display = "none";
 if (uploadSection) uploadSection.style.display = "block";
@@ -117,7 +110,7 @@ async function performSummarize() {
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
           fullText += chunk;
-          renderOutput(fullText, true); // asMarkdown = true
+          renderOutput(fullText, true);
         }
       }
     } else {
@@ -130,7 +123,6 @@ async function performSummarize() {
     summarySection.style.overflowY = "hidden";
   }
 }
-
 
 async function performGetDoi() {
   const file = fileInput.files && fileInput.files[0];
@@ -155,7 +147,6 @@ async function performGetDoi() {
     summarySection.style.display = "block";
     summarySection.style.overflowY = "hidden";
 
-    // Format as markdown
     const markdownFormatted = formatDoiResponseToMarkdown(rawText);
     renderOutput(markdownFormatted, true);
   } catch (err) {
@@ -183,87 +174,6 @@ function formatDoiResponseToMarkdown(text) {
 
   return formatted;
 }
-
-
-// async function performGetDoi() {
-//   const file = fileInput.files && fileInput.files[0];
-//   if (!file) return;
-
-//   resetResult();
-//   resultHeader.textContent = "Detected DOI";
-//   resultCard.style.display = "block";
-
-//   const formData = new FormData();
-//   formData.append("file", file);
-
-//   try {
-//     const res = await fetch(`${API_BASE}/doi`, {
-//       method: "POST",
-//       body: formData,
-//     });
-
-//     if (!res.ok) throw new Error(`Request failed (${res.status})`);
-
-//     const text = await res.text();
-
-//     summarySection.style.display = "block";
-//     summarySection.style.overflowY = "hidden";
-
-//     renderOutput(text, true);
-//   } catch (err) {
-//     summaryText.textContent = "Error: " + err.message;
-//     summarySection.style.display = "block";
-//     summarySection.style.overflowY = "hidden";
-//   }
-// }
-
-
-// async function performPlagiarism() {
-//   const file = fileInput.files && fileInput.files[0];
-//   if (!file) return;
-
-//   resetResult();
-//   resultHeader.textContent = "Plagiarism Check";
-//   resultCard.style.display = "block";
-
-//   const formData = new FormData();
-//   formData.append("file", file);
-
-//   try {
-//     const res = await fetch(`${API_BASE}/plagiarism`, {
-//       method: "POST",
-//       body: formData,
-//     });
-
-//     if (!res.ok) throw new Error(`Request failed (${res.status})`);
-
-//     summarySection.style.display = "block";
-//     summarySection.style.overflowY = "auto";
-
-//     if (res.body && res.body.getReader) {
-//       const reader = res.body.getReader();
-//       const decoder = new TextDecoder();
-//       let done = false;
-//       let fullText = "";
-//       while (!done) {
-//         const { value, done: doneReading } = await reader.read();
-//         done = doneReading;
-//         if (value) {
-//           const chunk = decoder.decode(value, { stream: true });
-//           fullText += chunk;
-//           renderOutput(fullText, true); // asMarkdown = true
-//         }
-//       }
-//     } else {
-//       const text = await res.text();
-//       renderOutput(text, true);
-//     }
-//   } catch (err) {
-//     summaryText.textContent = "Error: " + err.message;
-//     summarySection.style.display = "block";
-//     summarySection.style.overflowY = "hidden";
-//   }
-// }
 
 function renderOutput(text, asMarkdown) {
   if (asMarkdown) {
@@ -315,5 +225,4 @@ async function uploadSelectedFile() {
 function setActionButtonsEnabled(enabled) {
   btnSummarize.disabled = !enabled;
   btnGetDoi.disabled = !enabled;
-  // btnPlagiarism.disabled = !enabled;
 }
