@@ -61,7 +61,7 @@ const resultHeader = document.getElementById("resultHeader");
 const summarySection = document.getElementById("summarySection");
 const summaryText = document.getElementById("summaryText");
 
-const API_BASE = "http://13.220.174.139:8001";
+const API_BASE = "http://13.220.174.139:8000";
 
 btnSummarize.addEventListener("click", performSummarize);
 btnGetDoi.addEventListener("click", performGetDoi);

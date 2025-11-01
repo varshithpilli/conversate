@@ -1,0 +1,46 @@
+# make bucket
+aws s3 mb s3://trial-model-for-cloud --region us-east-1
+
+# List items in bucket
+aws s3 ls s3://trial-model-for-cloud/
+
+# Empty bucket
+aws s3 rm s3://trial-model-for-cloud/ --recursive
+
+# Delete bucket
+aws s3 rb s3://trial-model-for-cloud --force
+
+# Add to bucket
+aws s3 cp ./ s3://trial-model-for-cloud/models/tiny-gpt2/ --recursive --region us-east-1
+
+# Useful commands for cloud project
+
+-new ec2
+sudo apt update ; sudo apt upgrade -y ; sudo apt install python3-pip -y ; sudo apt install uvicorn -y ; git clone https://github.com/varshithpilli/research-summarizer.git
+cd research-summarizer ; python3 -m venv venv ; source venv/bin/activate ; pip install -r requirements.txt --break-system-packages
+pip install --upgrade boto3 botocore --break-system-packages
+
+-run server
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+-view ports
+sudo lsof -i :8000
+
+-link of the frontend website
+http://frontend-bucket-s3-varshith.s3-website-us-east-1.amazonaws.com/
+
+-ssh into server
+ssh -i "temp1.pem" ubuntu@ec2-13-220-174-139.compute-1.amazonaws.com
+
+upload file(everything else hidden) -> uploading(everything else hidden) -> extract all the matter(text, images, tables) into something -> uploaded(everything else shown).
+/summarize -> get the matter -> pass to bedrock -> summarize -> stream
+/doi -> get the matter -> pass to bedrock -> getdoi -> return
+
+cd aws ; ssh -i "temp1.pem" ubuntu@ec2-13-220-174-139.compute-1.amazonaws.com
+cd research-summarizer ; source venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+
+cd aws ; ssh -i "temp1.pem" ubuntu@ec2-13-220-174-139.compute-1.amazonaws.com
+cd health_back/ ; source venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port 5000 --reload
