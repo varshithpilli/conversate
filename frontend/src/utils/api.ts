@@ -2,7 +2,7 @@ const API_BASE = "http://13.220.174.139:8000";
 
 export interface UploadResponse {
   success: boolean;
-  documentId?: string;
+  documentId: string;
   filename?: string;
   result?: any;
 }
